@@ -1,16 +1,12 @@
-// tools/update.js
-
 const fs = require('fs');
 const https = require('https');
 
-// 新的节点源（推荐公开免费源，主要包含 Socks5/HTTP 代理，适合翻墙）
 const sources = [
-  'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt',
-  'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt',
-  'https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt'
+  'https://raw.githubusercontent.com/ermaozi01/free-clash-subscribe/main/sub.list',
+  'https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub',
+  'https://raw.githubusercontent.com/learnhard-cn/free_proxy_ss/main/subscribe.txt'
 ];
 
-// 合并所有节点
 async function fetchAndMerge() {
   let all = '';
   for (const url of sources) {
@@ -23,13 +19,24 @@ async function fetchAndMerge() {
   }
 
   const lines = Array.from(new Set(all.split('\n')))
-    .filter(line => /^(\d{1,3}\.){3}\d{1,3}:\d{2,5}$/.test(line));
+    .filter(line => line.startsWith('ss://') || line.startsWith('vmess://') || line.startsWith('vless://') || line.startsWith('trojan://'))
+    .filter(line =>
+      /香港|HK|Singapore|新加坡|日本|Japan|美国|US|Germany|德国|台湾|Taiwan/i.test(decodeURIComponent(line))
+    );
 
-  fs.writeFileSync('sub.txt', lines.join('\n'), 'utf-8');
-  console.log(`✅ 抓取完成，共写入 ${lines.length} 条节点`);
+  // 分类节点
+  const clashNodes = lines.filter(l => l.startsWith('vmess://') || l.startsWith('vless://') || l.startsWith('trojan://'));
+  const v2rayNodes = clashNodes;
+  const ssNodes = lines.filter(l => l.startsWith('ss://'));
+
+  // 生成订阅文件（你可根据格式需求自行修改）
+  fs.writeFileSync('clash.yaml', clashNodes.join('\n'), 'utf-8');
+  fs.writeFileSync('v2ray.txt', v2rayNodes.join('\n'), 'utf-8');
+  fs.writeFileSync('ss.txt', ssNodes.join('\n'), 'utf-8');
+
+  console.log(`✅ 抓取完成：总计 ${lines.length} 条节点，生成 clash.yaml(${clashNodes.length})，v2ray.txt(${v2rayNodes.length})，ss.txt(${ssNodes.length})`);
 }
 
-// 拉取远程文本内容
 function fetchRemote(url) {
   return new Promise((resolve, reject) => {
     https.get(url, res => {
@@ -40,5 +47,4 @@ function fetchRemote(url) {
   });
 }
 
-// 执行主函数
 fetchAndMerge();
