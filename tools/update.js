@@ -25,4 +25,36 @@ async function fetchAndMerge() {
 
   const lines = Array.from(new Set(all.split('\n')))
     .map(line => line.trim())
-    .filter
+    .filter(line =>
+      line.startsWith('ss://') ||
+      line.startsWith('vmess://') ||
+      line.startsWith('vless://') ||
+      line.startsWith('trojan://')
+    );
+
+  fs.writeFileSync('sub.txt', lines.join('\n'), 'utf-8');
+  console.log(`✅ 抓取完成，共写入 ${lines.length} 条节点`);
+}
+
+// 判断是否为 base64
+function isBase64(str) {
+  try {
+    return Buffer.from(str, 'base64').toString('utf-8').includes('://');
+  } catch {
+    return false;
+  }
+}
+
+// 拉取远程文本内容
+function fetchRemote(url) {
+  return new Promise((resolve, reject) => {
+    https.get(url, res => {
+      let data = '';
+      res.on('data', chunk => (data += chunk));
+      res.on('end', () => resolve(data));
+    }).on('error', reject);
+  });
+}
+
+// 执行主函数
+fetchAndMerge();
