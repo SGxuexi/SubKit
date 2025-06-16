@@ -2,18 +2,31 @@
 <html lang="zh-CN">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>节点订阅页面</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>我的自建订阅系统</title>
+  <style>
+    body { font-family: "Microsoft YaHei", sans-serif; padding: 2rem; background: #f0f0f5; }
+    h1 { color: #333; }
+    a {
+      display: inline-block;
+      margin: 1rem 0;
+      padding: 1rem 1.5rem;
+      background: #4a90e2;
+      color: white;
+      text-decoration: none;
+      border-radius: 6px;
+      font-size: 1.2rem;
+      transition: background 0.3s;
+    }
+    a:hover {
+      background: #357ABD;
+    }
+  </style>
 </head>
 <body>
-  <h2>我的自建订阅系统</h2>
-  <p><strong>Clash 订阅：</strong></p>
-  <a href="./clash.yaml" target="_blank">点击下载 Clash.yaml</a>
-
-  <p><strong>V2Ray / VLESS 订阅：</strong></p>
-  <a href="./v2ray.txt" target="_blank">点击下载 v2ray.txt</a>
-
-  <p><strong>Shadowsocks 订阅：</strong></p>
-  <a href="./ss.txt" target="_blank">点击下载 ss.txt</a>
+  <h1>我的自建订阅系统</h1>
+  <a href="/clash.yaml" download>下载 Clash 订阅</a><br />
+  <a href="/v2ray.txt" download>下载 V2Ray 订阅</a><br />
+  <a href="/ss.txt" download>下载 Shadowsocks 订阅</a>
 </body>
 </html>
