@@ -1,115 +1,70 @@
+// tools/update.js
 const fs = require('fs');
 const path = require('path');
 const axios = require('axios');
+const yaml = require('js-yaml');
 
-// 自动创建 public 目录（如果不存在）
+// 确保输出目录 public/ 存在
 const publicDir = path.join(__dirname, '../public');
-if (!fs.existsSync(publicDir)) {
-  fs.mkdirSync(publicDir);
-}
+if (!fs.existsSync(publicDir)) fs.mkdirSync(publicDir);
 
-// 订阅源列表（可根据需要增删）
-const sources = [
-  'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt',
-  'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt',
-  'https://raw.githubusercontent.com/prxchk/proxy-list/main/http.txt'
-];
+// 订阅源：SpeedX 的 SOCKS5 列表
+const source = 'https://raw.githubusercontent.com/TheSpeedX/SOCKS-List/master/socks5.txt';
 
-// 结果存储
-let nodes = [];
+(async () => {
+  try {
+    console.log('📡 开始拉取 SOCKS5 节点...');
+    const res = await axios.get(source, { timeout: 10000 });
+    const lines = res.data
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l && /^\d+\.\d+\.\d+\.\d+:\d+$/.test(l));
 
-async function fetchSources() {
-  for (const url of sources) {
-    try {
-      const res = await axios.get(url, { timeout: 15000 });
-      const lines = res.data.split('\n').filter(l => l.trim() && !l.startsWith('#'));
-      nodes = nodes.concat(lines);
-    } catch (err) {
-      console.warn(`⚠️ 无法抓取：${url}`);
+    if (lines.length === 0) {
+      console.error('❌ 未抓取到任何节点');
+      process.exit(1);
     }
-  }
-}
+    console.log(`✅ 抓取到 ${lines.length} 个 SOCKS5 节点`);
 
-function saveToFile(filename, content) {
-  fs.writeFileSync(path.join(publicDir, filename), content, 'utf8');
-}
+    // ss.txt 伪造 Shadowsocks 链接
+    const ss = lines.map((l, i) => {
+      const [host, port] = l.split(':');
+      const fake = 'YWVzLTI1Ni1nY206cGFzc3MhQHNzbmV0OjEyMw=='; // fake user:pass
+      return `ss://${fake}@${host}:${port}#node${i+1}`;
+    });
+    fs.writeFileSync(path.join(publicDir, 'ss.txt'), ss.join('\n'));
 
-function generateClash(nodes) {
-  const proxies = nodes.map((line, i) => {
-    const [host, port] = line.trim().split(':');
-    return {
-      name: `node${i + 1}`,
-      type: 'socks5',
-      server: host,
-      port: parseInt(port),
-      udp: true
-    };
-  });
+    // v2ray.txt 使用 socks:// 前缀
+    const v2ray = lines.map(l => `socks5://${l}`);
+    fs.writeFileSync(path.join(publicDir, 'v2ray.txt'), v2ray.join('\n'));
 
-  return {
-    port: 7890,
-    socks-port: 7891,
-    allow-lan: true,
-    mode: 'Rule',
-    proxies: proxies,
-    'proxy-groups': [
-      {
+    // clash.yaml 格式
+    const proxies = lines.map((l, i) => {
+      const [host, port] = l.split(':');
+      return {
+        name: `socks5-${i+1}`,
+        type: 'socks5',
+        server: host,
+        port: parseInt(port),
+        udp: true
+      };
+    });
+    const config = {
+      proxies,
+      'proxy-groups': [{
         name: 'Auto',
         type: 'url-test',
         proxies: proxies.map(p => p.name),
         url: 'http://www.gstatic.com/generate_204',
         interval: 300
-      }
-    ],
-    rules: ['MATCH,Auto']
-  };
-}
+      }],
+      rules: ['MATCH,Auto']
+    };
+    fs.writeFileSync(path.join(publicDir, 'clash.yaml'), yaml.dump(config));
 
-function generateV2Ray(nodes) {
-  return nodes
-    .map(line => {
-      const [host, port] = line.trim().split(':');
-      return `socks://${host}:${port}`;
-    })
-    .join('\n');
-}
-
-function generateSS(nodes) {
-  return nodes
-    .map(line => {
-      const [host, port] = line.trim().split(':');
-      return `ss://YWVzLTI56CBzaW1wbGU6cGFzc3dvcmRA${host}:${port}#node`;
-    })
-    .join('\n');
-}
-
-(async () => {
-  console.log('📡 正在从 GitHub 抓取节点数据...\n');
-  await fetchSources();
-
-  const total = nodes.length;
-  console.log(`✅ 抓取完成：共 ${total} 条节点`);
-
-  if (total === 0) {
-    console.warn('⚠️ 无节点可写入，跳过生成文件');
-    process.exit(0);
-  }
-
-  try {
-    const clash = generateClash(nodes);
-    const v2ray = generateV2Ray(nodes);
-    const ss = generateSS(nodes);
-
-    saveToFile('clash.yaml', `# 由 SubKit 自动生成\n${JSON.stringify(clash, null, 2)}`);
-    saveToFile('v2ray.txt', v2ray);
-    saveToFile('ss.txt', ss);
-
-    console.log('\n✅ 已写入：');
-    console.log(`  - public/clash.yaml (${nodes.length} 条)`);
-    console.log(`  - public/v2ray.txt`);
-    console.log(`  - public/ss.txt`);
+    console.log('✅ 订阅文件生成完成！');
   } catch (err) {
-    console.error('❌ 写入文件出错：', err.message);
+    console.error('❌ 错误：', err.message);
     process.exit(1);
   }
 })();
