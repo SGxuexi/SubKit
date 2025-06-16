@@ -3,11 +3,11 @@
 const fs = require('fs');
 const https = require('https');
 
-// ✅ 替换为以下有效来源（多源备份）
+// 新的节点源（推荐公开免费源，主要包含 Socks5/HTTP 代理，适合翻墙）
 const sources = [
-  'https://raw.githubusercontent.com/ermaozi01/free-clash-subscribe/main/sub.list',
-  'https://raw.githubusercontent.com/Pawdroid/Free-servers/main/sub',
-  'https://raw.githubusercontent.com/learnhard-cn/free_proxy_ss/main/subscribe.txt'
+  'https://raw.githubusercontent.com/TheSpeedX/PROXY-List/master/socks5.txt',
+  'https://raw.githubusercontent.com/clarketm/proxy-list/master/proxy-list-raw.txt',
+  'https://raw.githubusercontent.com/prxchk/proxy-list/main/socks5.txt'
 ];
 
 // 合并所有节点
@@ -22,17 +22,8 @@ async function fetchAndMerge() {
     }
   }
 
-  // 过滤并保存
   const lines = Array.from(new Set(all.split('\n')))
-    .filter(line =>
-      line.startsWith('ss://') ||
-      line.startsWith('vmess://') ||
-      line.startsWith('vless://') ||
-      line.startsWith('trojan://')
-    )
-    .filter(line =>
-      /香港|HK|Singapore|新加坡|日本|Japan|美国|US|Germany|德国|台湾|Taiwan/i.test(decodeURIComponent(line))
-    );
+    .filter(line => /^(\d{1,3}\.){3}\d{1,3}:\d{2,5}$/.test(line));
 
   fs.writeFileSync('sub.txt', lines.join('\n'), 'utf-8');
   console.log(`✅ 抓取完成，共写入 ${lines.length} 条节点`);
